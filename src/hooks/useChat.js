@@ -1,45 +1,89 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-export const useChat = (roomId, userId, profile) => {
-  const [messages, setMessages] = useState([])
-  const [rooms, setRooms] = useState([])
+// Hook for the list of chats
+export const useChats = (userId) => {
+  const [chats, setChats] = useState([])
   const [loading, setLoading] = useState(false)
-  const [typingUsers, setTypingUsers] = useState([])
 
-  // Fetch all rooms for the user
-  const fetchRooms = useCallback(async () => {
+  const fetchChats = useCallback(async () => {
     if (!userId || !supabase) return
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('rooms')
+        .from('chats')
         .select(`
           *,
-          room_members!inner(user_id)
+          chat_members!inner(user_id)
         `)
-        .eq('room_members.user_id', userId)
+        .eq('chat_members.user_id', userId)
 
       if (error) throw error
-      setRooms(data)
+      setChats(data)
     } catch (error) {
-      console.error('Error fetching rooms:', error.message)
+      console.error('Error fetching chats:', error.message)
     } finally {
       setLoading(false)
     }
   }, [userId])
 
-  // Fetch messages for a specific room
-  const fetchMessages = useCallback(async (currentRoomId) => {
-    if (!currentRoomId || !supabase) return
+  useEffect(() => {
+    fetchChats()
+  }, [fetchChats])
+
+  const createChat = async (name, profile, isGroup = false) => {
+    if (!userId || !supabase) return null
+    try {
+      // Fail-safe: Ensure profile exists
+      const { error: profileCheckError } = await supabase
+        .from('profiles')
+        .upsert([{ 
+          id: userId, 
+          username: profile?.username || `user_${userId.slice(0, 5)}`,
+          status: 'online' 
+        }], { onConflict: 'id' })
+      
+      if (profileCheckError) throw profileCheckError;
+
+      const { data: chat, error: chatError } = await supabase
+        .from('chats')
+        .insert([{ name, is_group: isGroup, created_by: userId }])
+        .select()
+        .single()
+
+      if (chatError) throw chatError
+
+      const { error: memberError } = await supabase
+        .from('chat_members')
+        .insert([{ chat_id: chat.id, user_id: userId }])
+
+      if (memberError) throw memberError
+
+      await fetchChats()
+      return chat
+    } catch (error) {
+      console.error('Error creating chat:', error.message)
+      alert('Failed to create chat: ' + error.message)
+      return null
+    }
+  }
+
+  return { chats, loading, createChat, refreshChats: fetchChats }
+}
+
+// Hook for a single chat's messages and presence
+export const useChatMessages = (chatId, userId, profile) => {
+  const [messages, setMessages] = useState([])
+  const [typingUsers, setTypingUsers] = useState([])
+  const presenceChannelRef = useRef(null)
+
+  const fetchMessages = useCallback(async () => {
+    if (!chatId || !supabase) return
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
-          *,
-          profiles(username, avatar_url)
-        `)
-        .eq('room_id', currentRoomId)
+        .select('*, profiles(username, avatar_url)')
+        .eq('chat_id', chatId)
         .order('created_at', { ascending: true })
 
       if (error) throw error
@@ -47,27 +91,23 @@ export const useChat = (roomId, userId, profile) => {
     } catch (error) {
       console.error('Error fetching messages:', error.message)
     }
-  }, [])
+  }, [chatId])
 
   useEffect(() => {
-    fetchRooms()
-  }, [fetchRooms])
-
-  useEffect(() => {
-    if (!roomId || !userId || !supabase) return
+    if (!chatId || !userId || !supabase) return
     
-    fetchMessages(roomId)
+    setMessages([])
+    fetchMessages()
 
-    // Subscribe to new messages
     const channel = supabase
-      .channel(`room:${roomId}`)
+      .channel(`chat_messages:${chatId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `room_id=eq.${roomId}`
+          filter: `chat_id=eq.${chatId}`
         },
         async (payload) => {
           const { data, error } = await supabase
@@ -83,8 +123,8 @@ export const useChat = (roomId, userId, profile) => {
       )
       .subscribe()
 
-    // Presence channel for typing indicators
-    const presenceChannel = supabase.channel(`presence:${roomId}`)
+    const presenceChannel = supabase.channel(`presence:${chatId}`)
+    presenceChannelRef.current = presenceChannel
     
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
@@ -112,45 +152,36 @@ export const useChat = (roomId, userId, profile) => {
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(presenceChannel)
+      presenceChannelRef.current = null
     }
-  }, [roomId, userId, profile?.username, fetchMessages])
+  }, [chatId, userId, profile?.username, fetchMessages])
 
   const setTyping = async (isTyping) => {
-    if (!supabase || !roomId) return
-    const presenceChannel = supabase.channel(`presence:${roomId}`)
-    await presenceChannel.track({
-      user_id: userId,
-      username: profile?.username,
-      is_typing: isTyping
-    })
+    if (presenceChannelRef.current) {
+      await presenceChannelRef.current.track({
+        user_id: userId,
+        username: profile?.username,
+        is_typing: isTyping
+      })
+    }
   }
 
   const sendMessage = async (content, fileUrl = null) => {
-    if (!roomId || !userId || !supabase) return
-    
+    if (!chatId || !userId || !supabase) return
     try {
       const { error } = await supabase
         .from('messages')
         .insert([{
-          room_id: roomId,
+          chat_id: chatId,
           user_id: userId,
           content,
           file_url: fileUrl
         }])
-
       if (error) throw error
     } catch (error) {
       console.error('Error sending message:', error.message)
     }
   }
 
-  return {
-    rooms,
-    messages,
-    loading,
-    typingUsers,
-    sendMessage,
-    setTyping,
-    refreshRooms: fetchRooms
-  }
+  return { messages, typingUsers, sendMessage, setTyping }
 }

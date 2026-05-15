@@ -3,13 +3,13 @@ import { Phone, Video, Info, MoreVertical } from 'lucide-react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import EmptyState from '../ui/EmptyState';
-import { useChat } from '../../hooks/useChat';
+import { useChatMessages } from '../../hooks/useChat';
 import Avatar from '../ui/Avatar';
 
-const ChatWindow = ({ room, profile }) => {
-  const { messages, typingUsers, sendMessage, setTyping } = useChat(room?.id, profile?.id, profile);
+const ChatWindow = ({ chat, user, profile }) => {
+  const { messages, typingUsers, sendMessage, setTyping } = useChatMessages(chat?.id, user?.id, profile);
 
-  if (!room) {
+  if (!chat) {
     return (
       <div className="flex-1 bg-dark-panel h-full">
         <EmptyState 
@@ -24,9 +24,9 @@ const ChatWindow = ({ room, profile }) => {
     <div className="flex-1 flex flex-col bg-dark-panel h-full">
       <div className="p-3 px-6 flex justify-between items-center border-b border-white/5 bg-white/[0.02]">
         <div className="flex items-center gap-3">
-          <Avatar name={room.name} size="md" status="online" />
+          <Avatar name={chat.name} size="md" status="online" />
           <div className="flex flex-col">
-            <h3 className="m-0 text-base text-white font-semibold">{room.name || 'Conversation'}</h3>
+            <h3 className="m-0 text-base text-white font-semibold">{chat.name || 'Conversation'}</h3>
             <span className="text-[0.75rem] text-green-500">
               {typingUsers.length > 0 
                 ? `${typingUsers.join(', ')} ${typingUsers.length > 1 ? 'are' : 'is'} typing...` 
@@ -43,9 +43,9 @@ const ChatWindow = ({ room, profile }) => {
         </div>
       </div>
 
-      <MessageList messages={messages} currentUserId={profile?.id} />
+      <MessageList messages={messages} currentUserId={user?.id} />
 
-      <MessageInput onSendMessage={sendMessage} onTyping={setTyping} roomId={room.id} />
+      <MessageInput onSendMessage={sendMessage} onTyping={setTyping} chatId={chat.id} />
     </div>
   );
 };

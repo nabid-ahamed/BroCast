@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Users, Settings, LogOut, Bell, Calendar } from 'lucide-react';
+import { MessageSquare, Users, Settings, LogOut, Bell, Calendar, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Avatar from '../ui/Avatar';
 
@@ -11,17 +11,30 @@ const Sidebar = ({ activeTab, onTabChange, profile }) => {
     { id: 'teams', icon: Users, label: 'Teams' },
     { id: 'calendar', icon: Calendar, label: 'Calendar' },
     { id: 'activity', icon: Bell, label: 'Activity' },
+    { id: 'admin', icon: Shield, label: 'Admin', adminOnly: true },
   ];
 
+  const filteredNavItems = navItems.filter(item => !item.adminOnly || profile?.is_admin);
+
   return (
-    <div className="w-[68px] h-screen bg-dark-sidebar flex flex-col justify-between items-center py-3 flex-shrink-0 z-[100]">
+    <div 
+      className="w-[68px] h-screen bg-dark-sidebar flex flex-col justify-between items-center py-3 flex-shrink-0 z-[100]"
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        width: '68px', 
+        height: '100%', 
+        backgroundColor: '#18181b',
+        borderRight: '1px solid rgba(255,255,255,0.05)'
+      }}
+    >
       <div className="flex flex-col items-center w-full">
         <div className="w-10 h-10 bg-primary rounded-[10px] flex items-center justify-center mb-6 shadow-lg shadow-primary/30">
            <MessageSquare size={24} color="#fff" />
         </div>
         
         <div className="flex flex-col gap-2 w-full">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <button 
               key={item.id}
               className={`flex flex-col items-center justify-center gap-1 w-full h-16 cursor-pointer relative transition-all group ${activeTab === item.id ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}

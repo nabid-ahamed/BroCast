@@ -7,9 +7,9 @@ import ErrorBoundary from "./components/ui/ErrorBoundary";
 import "./index.css";
 
 function AppContent() {
-  const { user, profile, loading, error } = useAuth();
+  const { user, profile, loading, profileLoaded, error } = useAuth();
 
-  if (loading) {
+  if (loading && !user) {
     return <Loading fullScreen />;
   }
 
@@ -27,12 +27,23 @@ function AppContent() {
               <li>Check your internet connection.</li>
             </ul>
           </div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-6 bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-lg shadow-primary/20"
-          >
-            Retry Connection
-          </button>
+          <div className="flex flex-col gap-3 mt-8">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-primary/20"
+            >
+              Retry Connection
+            </button>
+            <button 
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }} 
+              className="bg-white/5 hover:bg-white/10 text-gray-300 px-8 py-3 rounded-xl font-semibold transition-all border border-white/10"
+            >
+              Clear Cache & Restart
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -40,6 +51,44 @@ function AppContent() {
 
   if (!user) {
     return <AuthPage />;
+  }
+
+  // Admin Approval Check
+  if (profile && profile.approval_status !== 'approved') {
+    return (
+      <div className="flex justify-center items-center w-screen h-screen bg-dark-bg text-white p-5">
+        <div className="max-w-[500px] w-full p-10 text-center glass-dark">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-white font-bold text-2xl mb-2">
+            {profile.approval_status === 'rejected' ? 'Access Denied' : 'Approval Pending'}
+          </h2>
+          <p className="text-gray-400 mb-8">
+            {profile.approval_status === 'rejected' 
+              ? 'Your account has been rejected by the administrator.' 
+              : 'Your account is currently waiting for administrator approval. You will be able to access the system once approved.'}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-primary/20"
+          >
+            Check Status
+          </button>
+          <button 
+            onClick={() => {
+              localStorage.clear();
+              window.location.reload();
+            }} 
+            className="block w-full mt-4 text-gray-500 hover:text-gray-300 transition-colors text-sm"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return <ChatsPage user={user} profile={profile} />;

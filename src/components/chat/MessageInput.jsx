@@ -3,7 +3,7 @@ import { Send, Paperclip, Smile, Image as ImageIcon, Plus } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '../../lib/supabase';
 
-const MessageInput = ({ onSendMessage, onTyping, roomId }) => {
+const MessageInput = ({ onSendMessage, onTyping, chatId }) => {
   const [text, setText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
@@ -36,7 +36,7 @@ const MessageInput = ({ onSendMessage, onTyping, roomId }) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `chat-files/${roomId}/${fileName}`;
+      const filePath = `chat-files/${chatId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('chat-assets')
