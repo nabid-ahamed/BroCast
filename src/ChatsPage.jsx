@@ -7,6 +7,7 @@ import { useChats } from "./hooks/useChat";
 import NewChatModal from "./components/chat/NewChatModal";
 
 import AdminPanel from "./components/admin/AdminPanel";
+import SettingsPanel from "./components/settings/SettingsPanel";
 import Loading from "./components/ui/Loading";
 
 const ChatsPage = ({ user, profile }) => {
@@ -52,7 +53,7 @@ const ChatsPage = ({ user, profile }) => {
           </>
         );
       case 'admin':
-        return profile?.is_admin ? <AdminPanel /> : (
+        return profile?.is_admin ? <AdminPanel currentUserProfile={profile} /> : (
           <div className="flex-1 flex items-center justify-center bg-dark-panel text-gray-400">
             <div className="text-center">
               <h2 className="text-white text-2xl mb-2">Access Denied</h2>
@@ -60,6 +61,8 @@ const ChatsPage = ({ user, profile }) => {
             </div>
           </div>
         );
+      case 'settings':
+        return <SettingsPanel profile={profile} />;
       default:
         return (
           <div className="flex-1 flex items-center justify-center bg-dark-panel text-gray-400">

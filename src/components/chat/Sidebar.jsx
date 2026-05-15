@@ -52,7 +52,11 @@ const Sidebar = ({ activeTab, onTabChange, profile }) => {
       </div>
 
       <div className="flex flex-col items-center gap-3 w-full">
-        <button className="flex items-center justify-center w-full h-12 text-white/60 hover:text-white hover:bg-white/5 transition-all" title="Settings">
+        <button 
+          className={`flex items-center justify-center w-full h-12 transition-all ${activeTab === 'settings' ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`} 
+          onClick={() => onTabChange('settings')}
+          title="Settings"
+        >
           <Settings size={22} />
         </button>
         <button 
