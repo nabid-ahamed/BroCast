@@ -1,33 +1,74 @@
-# BroCast 🎙️
+# BroCast - Modern Realtime Collaboration
 
-A high-performance, real-time messaging platform inspired by Microsoft Teams.
+BroCast is a high-performance, real-time team collaboration platform inspired by Microsoft Teams and Discord. Built with a modern glassmorphism aesthetic using React, Tailwind CSS, and Supabase.
 
-## 📁 Repository Structure
+![BroCast Banner](https://images.unsplash.com/photo-1611743526673-9bb880c4821a?auto=format&fit=crop&q=80&w=1200)
 
-This repository contains the full source code for the BroCast application, divided into frontend and backend services.
+## 🚀 Features
 
-- **[teams-chat/](./teams-chat/)**: The main React application built with Vite.
-- **[teams-chat/backend/](./teams-chat/backend/)**: Node.js/Express server handling secure authentication via Chat Engine.
+- **Real-time Messaging**: Instant message delivery with Supabase Realtime.
+- **Direct & Group Chats**: Seamlessly switch between private and team conversations.
+- **Presence & Typing**: See who's online and when they're typing.
+- **Secure Authentication**: Built-in signup, login, and session persistence.
+- **File & Image Sharing**: Integrated storage for media collaboration.
+- **Glassmorphism UI**: Stunning, premium dark mode interface.
+- **Responsive Design**: Fully optimized for desktop and mobile.
+- **Error Resilient**: Robust error boundaries and configuration checks.
 
-## 🚀 Quick Start
+## 🛠 Tech Stack
 
-To get started with the project, navigate to the `teams-chat` directory and follow the instructions in its [README.md](./teams-chat/README.md).
+- **Frontend**: React 19, Vite, Tailwind CSS.
+- **Animations**: Framer Motion.
+- **Backend**: Supabase (Auth, Postgres, Realtime, Storage).
+- **Icons**: Lucide React.
+- **Date Handling**: date-fns.
 
+## 📦 Setup Instructions
+
+### 1. Clone & Install
 ```bash
-cd teams-chat
+git clone https://github.com/your-username/BroCast.git
+cd BroCast
 npm install
+```
+
+### 2. Configure Environment
+Create a `.env` file in the root directory:
+```env
+VITE_SUPABASE_URL=https://wabrkrjlkafnajcwmyhl.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_public_key
+```
+
+### 3. Database Setup
+Follow the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) guide to initialize your database schema, storage buckets, and realtime replication.
+
+### 4. Run Development Server
+```bash
 npm run dev
 ```
 
-## ✨ Highlights
+## 🌐 Deployment
 
-- **Real-time Engine**: Powered by Chat Engine for millisecond-latency messaging.
-- **Modern UI**: Sleek, professional interface designed for enterprise-level communication.
-- **Secure**: Server-side user authentication.
-- **Animations**: Fluid transitions and micro-interactions.
+BroCast is deployment-ready for **Vercel** or **Netlify**.
 
-For detailed documentation, installation steps, and environment setup, please refer to the [Main Application README](./teams-chat/README.md).
+### Vercel / Netlify
+1. Connect your GitHub repository.
+2. Add the environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+3. Set the build command to `npm run build` and output directory to `dist`.
+
+## 📂 Project Structure
+
+```
+src/
+  components/
+    auth/      - Authentication screens
+    chat/      - Sidebar, ChatList, MessageList, ChatWindow
+    ui/        - Reusable UI (Avatar, Loading, ErrorBoundary)
+  hooks/       - useAuth and useChat logic
+  lib/         - Supabase client config
+  index.css    - Tailwind and global styles
+```
 
 ---
 
-Developed by [Nabid Ahamed](https://github.com/nabid-ahamed)
+Built with ❤️ by Nabid Ahamed

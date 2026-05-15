@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --primary-color: #5b5fc7;
+  --primary-hover: #4f52b2;
+}
+
+body {
+  @apply bg-dark-bg text-gray-100 m-0 overflow-hidden;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl;
+}
+
+.glass-dark {
+  @apply bg-black/20 backdrop-blur-xl border border-white/5 rounded-xl;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
