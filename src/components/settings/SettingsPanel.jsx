@@ -25,11 +25,11 @@ const SettingsPanel = ({ profile }) => {
 
     try {
       // Basic check to see if someone else has this username
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
         .select('id')
         .eq('username', newUsername.trim())
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         throw new Error('This username is already taken.');
