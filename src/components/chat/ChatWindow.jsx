@@ -7,7 +7,7 @@ import { useChatMessages } from '../../hooks/useChat';
 import Avatar from '../ui/Avatar';
 
 const ChatWindow = ({ chat, user, profile }) => {
-  const { messages, typingUsers, sendMessage, setTyping } = useChatMessages(chat?.id, user?.id, profile);
+  const { messages, typingUsers, sendMessage, setTyping, unsendMessage, editMessage, deleteForMe } = useChatMessages(chat?.id, user?.id, profile);
 
   if (!chat) {
     return (
@@ -43,7 +43,13 @@ const ChatWindow = ({ chat, user, profile }) => {
         </div>
       </div>
 
-      <MessageList messages={messages} currentUserId={user?.id} />
+      <MessageList 
+        messages={messages} 
+        currentUserId={user?.id} 
+        onUnsendMessage={unsendMessage}
+        onEditMessage={editMessage}
+        onDeleteForMe={deleteForMe}
+      />
 
       <MessageInput onSendMessage={sendMessage} onTyping={setTyping} chatId={chat.id} />
     </div>

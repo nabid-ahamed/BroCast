@@ -8,7 +8,7 @@ const Sidebar = ({ activeTab, onTabChange, profile }) => {
 
   const navItems = [
     { id: 'chat', icon: MessageSquare, label: 'Chat' },
-    { id: 'teams', icon: Users, label: 'Teams' },
+    { id: 'connections', icon: Users, label: 'Connections' },
     { id: 'calendar', icon: Calendar, label: 'Calendar' },
     { id: 'activity', icon: Bell, label: 'Activity' },
     { id: 'admin', icon: Shield, label: 'Admin', adminOnly: true },

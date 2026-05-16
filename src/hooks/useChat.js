@@ -14,9 +14,10 @@ export const useChats = (userId) => {
         .from('chats')
         .select(`
           *,
-          chat_members!inner(user_id)
+          chat_members!inner(user_id, is_hidden)
         `)
         .eq('chat_members.user_id', userId)
+        .neq('chat_members.is_hidden', true)
 
       if (error) throw error
       setChats(data)
@@ -29,9 +30,27 @@ export const useChats = (userId) => {
 
   useEffect(() => {
     fetchChats()
-  }, [fetchChats])
 
-  const createChat = async (name, profile, isGroup = false) => {
+    const channel = supabase
+      .channel(`user_chats:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chats' },
+        () => fetchChats()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chat_members', filter: `user_id=eq.${userId}` },
+        () => fetchChats()
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchChats, userId])
+
+  const createChat = async (name, profile, isGroup = false, memberIds = []) => {
     if (!userId || !supabase) return null
     try {
       // Fail-safe: Ensure profile exists
@@ -53,9 +72,16 @@ export const useChats = (userId) => {
 
       if (chatError) throw chatError
 
+      const membersToInsert = [{ chat_id: chat.id, user_id: userId }];
+      memberIds.forEach(id => {
+        if (id !== userId) {
+          membersToInsert.push({ chat_id: chat.id, user_id: id });
+        }
+      });
+
       const { error: memberError } = await supabase
         .from('chat_members')
-        .insert([{ chat_id: chat.id, user_id: userId }])
+        .insert(membersToInsert)
 
       if (memberError) throw memberError
 
@@ -68,7 +94,21 @@ export const useChats = (userId) => {
     }
   }
 
-  return { chats, loading, createChat, refreshChats: fetchChats }
+  const hideChat = async (chatId) => {
+    try {
+      const { error } = await supabase
+        .from('chat_members')
+        .update({ is_hidden: true })
+        .eq('chat_id', chatId)
+        .eq('user_id', userId);
+      if (error) throw error;
+      setChats(prev => prev.filter(c => c.id !== chatId));
+    } catch (e) {
+      console.error('Error hiding chat:', e.message);
+    }
+  };
+
+  return { chats, loading, createChat, refreshChats: fetchChats, hideChat }
 }
 
 // Hook for a single chat's messages and presence
@@ -82,12 +122,13 @@ export const useChatMessages = (chatId, userId, profile) => {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('*, profiles(username, avatar_url)')
+        .select('*, profiles(username, avatar_url), hidden_messages(id)')
         .eq('chat_id', chatId)
         .order('created_at', { ascending: true })
 
       if (error) throw error
-      setMessages(data)
+      const visibleMessages = data.filter(msg => !msg.hidden_messages || msg.hidden_messages.length === 0)
+      setMessages(visibleMessages)
     } catch (error) {
       console.error('Error fetching messages:', error.message)
     }
@@ -104,20 +145,26 @@ export const useChatMessages = (chatId, userId, profile) => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `chat_id=eq.${chatId}`
         },
         async (payload) => {
-          const { data, error } = await supabase
-            .from('messages')
-            .select('*, profiles(username, avatar_url)')
-            .eq('id', payload.new.id)
-            .single()
-          
-          if (!error && data) {
-            setMessages((prev) => [...prev, data])
+          if (payload.eventType === 'INSERT') {
+            const { data, error } = await supabase
+              .from('messages')
+              .select('*, profiles(username, avatar_url)')
+              .eq('id', payload.new.id)
+              .single()
+            
+            if (!error && data) {
+              setMessages((prev) => [...prev, data])
+            }
+          } else if (payload.eventType === 'UPDATE') {
+             setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+          } else if (payload.eventType === 'DELETE') {
+             setMessages(prev => prev.filter(m => m.id !== payload.old.id));
           }
         }
       )
@@ -183,5 +230,43 @@ export const useChatMessages = (chatId, userId, profile) => {
     }
   }
 
-  return { messages, typingUsers, sendMessage, setTyping }
+  const unsendMessage = async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_unsent: true, content: 'This message was unsent', file_url: null })
+        .eq('id', messageId)
+        .eq('user_id', userId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error unsending message:', error.message)
+    }
+  }
+
+  const editMessage = async (messageId, newContent) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ content: newContent, is_edited: true })
+        .eq('id', messageId)
+        .eq('user_id', userId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error editing message:', error.message)
+    }
+  }
+
+  const deleteForMe = async (messageId) => {
+    try {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      const { error } = await supabase
+        .from('hidden_messages')
+        .insert({ message_id: messageId, user_id: userId });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error hiding message:', error.message)
+    }
+  }
+
+  return { messages, typingUsers, sendMessage, setTyping, unsendMessage, editMessage, deleteForMe }
 }

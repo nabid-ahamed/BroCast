@@ -8,13 +8,17 @@ import NewChatModal from "./components/chat/NewChatModal";
 
 import AdminPanel from "./components/admin/AdminPanel";
 import SettingsPanel from "./components/settings/SettingsPanel";
+import ConnectionsPanel from "./components/connections/ConnectionsPanel";
 import Loading from "./components/ui/Loading";
 
 const ChatsPage = ({ user, profile }) => {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (window.location.pathname.startsWith('/invite/')) return 'connections';
+    return 'chat';
+  });
   const [activeChat, setActiveChat] = useState(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const { chats, loading, createChat } = useChats(user?.id);
+  const { chats, loading, createChat, hideChat } = useChats(user?.id);
 
   // Auto-select first chat if none selected
   React.useEffect(() => {
@@ -23,8 +27,15 @@ const ChatsPage = ({ user, profile }) => {
     }
   }, [chats, activeChat, activeTab]);
 
-  const handleCreateChat = async (name, isGroup) => {
-    const newChat = await createChat(name, profile, isGroup);
+  // Ensure activeChat is still in chats
+  React.useEffect(() => {
+    if (activeChat && chats.length >= 0 && !chats.find(c => c.id === activeChat.id)) {
+      setActiveChat(chats.length > 0 ? chats[0] : null);
+    }
+  }, [chats, activeChat]);
+
+  const handleCreateChat = async (name, isGroup, memberIds) => {
+    const newChat = await createChat(name, profile, isGroup, memberIds);
     if (newChat) setActiveChat(newChat);
   };
 
@@ -42,6 +53,7 @@ const ChatsPage = ({ user, profile }) => {
               activeChatId={activeChat?.id}
               onChatSelect={setActiveChat}
               onCreateChat={() => setShowNewChatModal(true)}
+              onHideChat={hideChat}
               profile={profile}
               loading={loading}
             />
@@ -61,6 +73,8 @@ const ChatsPage = ({ user, profile }) => {
             </div>
           </div>
         );
+      case 'connections':
+        return <ConnectionsPanel profile={profile} user={user} />;
       case 'settings':
         return <SettingsPanel profile={profile} />;
       default:
@@ -91,6 +105,7 @@ const ChatsPage = ({ user, profile }) => {
         isOpen={showNewChatModal}
         onClose={() => setShowNewChatModal(false)}
         onCreateChat={handleCreateChat}
+        user={user}
       />
     </div>
   );
